@@ -21,9 +21,12 @@ knitr::opts_chunk$set(echo = TRUE)
 It's useful to designate one code chunk to load packages on the beginning of the file. You can always add to this chunk as needed. But concentrate the packages needed on only one chunk.
 
 ```{r package, include=FALSE}
+install.packages("lubridate",type="mac.binary")
+```
+
+```{r}
 library(lubridate)
 library(ggplot2)
-
 ```
 
 ## Importing data
@@ -79,7 +82,7 @@ head(my_date)
 inflow_data <- cbind(my_date,raw_inflow_data[,3:5])
 head(inflow_data)
 format(my_date[1],format="%y-%m")
-format(my_date[1],format="%Y-%m")
+format(my_date[1],format="%Y/%m")
 format(my_date[1],format="%Y-%b")
 
 
