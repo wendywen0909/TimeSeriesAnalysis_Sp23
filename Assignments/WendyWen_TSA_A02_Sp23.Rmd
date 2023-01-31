@@ -1,7 +1,7 @@
 ---
 title: "ENV 790.30 - Time Series Analysis for Energy Data | Spring 2023"
 subtitle: "Assignment 2 - Due date 02/03/23"
-author: "Student Name"
+author: "Wendy Wen"
 output: pdf_document
 geometry: margin=2.54cm
 ---
@@ -22,9 +22,14 @@ R packages needed for this assignment:"forecast","tseries", and "dplyr". Install
 
 ```{r}
 #Load/install required package here
-
+library(lubridate)
+library(ggplot2)
+library(forecast)
+library(Kendall)
+library(tseries)
+library(tidyverse)
+library(readxl)
 ```
-
 
 ## Data set information  
 
@@ -32,7 +37,13 @@ Consider the data provided in the spreadsheet "Table_10.1_Renewable_Energy_Produ
 
 ```{r}
 #Importing data set
+energy_data <- read_excel(path="/Users/wendywen/Desktop/ENV790/wendywen_TSA/Data/Table_10.1_Renewable_Energy_Production_and_Consumption_by_Source.xlsx",skip = 12, sheet="Monthly Data",col_names=FALSE) 
 
+#Now let's extract the column names from row 11
+read_col_names <- read_excel(path="/Users/wendywen/Desktop/ENV790/wendywen_TSA/Data/Table_10.1_Renewable_Energy_Production_and_Consumption_by_Source.xlsx",skip = 10,n_max = 1, sheet="Monthly Data",col_names=FALSE) 
+
+colnames(energy_data) <- read_col_names
+head(energy_data)
 ```
 
 
@@ -40,7 +51,8 @@ Consider the data provided in the spreadsheet "Table_10.1_Renewable_Energy_Produ
 You will work only with the following columns: Total Biomass Energy Production, Total Renewable Energy Production, Hydroelectric Power Consumption. Create a data frame structure with these three time series only. Use the command head() to verify your data.
 
 ```{r}
-
+newdata <- energy_data[,c("Month","Total Biomass Energy Production", "Total Renewable Energy Production", "Hydroelectric Power Consumption")]
+head(newdata)
 ```
 
 
@@ -48,7 +60,8 @@ You will work only with the following columns: Total Biomass Energy Production, 
 Transform your data frame in a time series object and specify the starting point and frequency of the time series using the function ts().
 
 ```{r}
-
+ts_data <- ts(newdata, start = c(1973,1), end = c(2022,9), frequency=12)
+head(ts_data)
 ```
 
 
@@ -56,7 +69,12 @@ Transform your data frame in a time series object and specify the starting point
 Compute mean and standard deviation for these three series.
 
 ```{r}
-
+# Standard deviation
+apply(ts_data,2,sd)
+```
+```{r}
+# Mean
+colMeans(ts_data)
 ```
 
 
@@ -64,13 +82,36 @@ Compute mean and standard deviation for these three series.
 Display and interpret the time series plot for each of these variables. Try to make your plot as informative as possible by writing titles, labels, etc. For each plot add a horizontal line at the mean of each series in a different color.
 
 ```{r}
-
+# Time series plot for Total Biomass Energy Production
+plot(ts_data[,"Total Biomass Energy Production"],type="l",col="brown",ylab="Biomass Energy Production [Trillion Btu]",main="Total Biomass Energy Production") 
+abline(h=mean(ts_data[,"Total Biomass Energy Production"]),col="red")
+```
+```{r}
+# Time series plot for Total Renewable Energy Production
+plot(ts_data[,"Total Renewable Energy Production"],type="l",col="green",ylab="Renewable Energy Production [Trillion Btu]",main="Total Renewable Energy Production") 
+abline(h=mean(ts_data[,"Total Renewable Energy Production"]),col="red")
+```
+```{r}
+# Time series plot for Hydroelectric Power Consumption
+plot(ts_data[,"Hydroelectric Power Consumption"],type="l",col="blue",ylab="Hydroelectric Power Consumption [Trillion Btu]",main="Hydroelectric Power Consumption") 
+abline(h=mean(ts_data[,"Hydroelectric Power Consumption"]),col="red")
 ```
 
 
 ## Question 5
 Compute the correlation between these three series. Are they significantly correlated? Explain your answer.
 
+```{r}
+#Method 1: using cor()
+cor1 <- cor(ts_data[, c('Total Biomass Energy Production', 'Total Renewable Energy Production', 'Hydroelectric Power Consumption')])
+cor1
+```
+```{r}
+#Method 2: using rcorr()
+library("Hmisc")
+cor2 <- rcorr(as.matrix(ts_data[,2:4]),type="pearson")
+cor2
+```
 ```{r}
 
 ```
@@ -80,7 +121,7 @@ Compute the correlation between these three series. Are they significantly corre
 Compute the autocorrelation function from lag 1 up to lag 40 for these three variables. What can you say about these plots? Do the three of them have the same behavior?
 
 ```{r}
-
+acf(ts_data[,1],lag.max = 40)
 ```
 
 
@@ -88,7 +129,9 @@ Compute the autocorrelation function from lag 1 up to lag 40 for these three var
 Compute the partial autocorrelation function from lag 1 to lag 40 for these three variables. How these plots differ from the ones in Q6?
 
 ```{r}
-
+#Total Biomass Energy Production
+pacf_bio <-pacf(ts_data[,1],lag.max = 40)
+pacf_bio
 ```
 
 
