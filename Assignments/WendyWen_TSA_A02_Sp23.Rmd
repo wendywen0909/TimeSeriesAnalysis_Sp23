@@ -51,7 +51,7 @@ head(energy_data)
 You will work only with the following columns: Total Biomass Energy Production, Total Renewable Energy Production, Hydroelectric Power Consumption. Create a data frame structure with these three time series only. Use the command head() to verify your data.
 
 ```{r}
-newdata <- energy_data[,c("Month","Total Biomass Energy Production", "Total Renewable Energy Production", "Hydroelectric Power Consumption")]
+newdata <- energy_data[,c("Total Biomass Energy Production", "Total Renewable Energy Production", "Hydroelectric Power Consumption")]
 head(newdata)
 ```
 
@@ -102,18 +102,17 @@ abline(h=mean(ts_data[,"Hydroelectric Power Consumption"]),col="red")
 Compute the correlation between these three series. Are they significantly correlated? Explain your answer.
 
 ```{r}
-#Method 1: using cor()
-cor1 <- cor(ts_data[, c('Total Biomass Energy Production', 'Total Renewable Energy Production', 'Hydroelectric Power Consumption')])
-cor1
-```
-```{r}
-#Method 2: using rcorr()
+#Using rcorr()
 library("Hmisc")
-cor2 <- rcorr(as.matrix(ts_data[,2:4]),type="pearson")
+cor2 <- rcorr(as.matrix(ts_data[,1:3]),type="spearman")
 cor2
 ```
 ```{r}
+# The correlation coefficient between total biomass energy production and total renewable energy production is 0.89 (p -> 0). Therefore, the positive correlation between those two parameters are strong and significant.
 
+# The correlation coefficient between total biomass energy production and hydroelectric power consumption is -0.29 (p -> 0). Therefore, the negative correlation between those two parameters are relatively weak but significant.
+
+# The correlation coefficient between total renewable energy production and hydroelectric power consumption is 0.05 (p = 0.22). Therefore, the positive correlation between those two parameters are weak and insignificant.
 ```
 
 
@@ -121,7 +120,21 @@ cor2
 Compute the autocorrelation function from lag 1 up to lag 40 for these three variables. What can you say about these plots? Do the three of them have the same behavior?
 
 ```{r}
-acf(ts_data[,1],lag.max = 40)
+#Total Biomass Energy Production
+acf_bio <- Acf(ts_data[,1],type="correlation",lag.max = 40,
+               main = "ACF of Total Biomass Energy Production")
+acf_bio
+```
+
+```{r}
+# Total Renewable Energy Production
+acf_ren <- Acf(ts_data[,2],type="correlation",lag.max = 40, main = "ACF of Total Renewable Energy Production")
+acf_ren
+```
+```{r}
+# Hydroelectric Power Consumption
+acf_hyd <- Acf(ts_data[,3],type="correlation",lag.max = 40, main = "ACF of Hydroelectric Power Consumption")
+acf_hyd
 ```
 
 
@@ -130,8 +143,18 @@ Compute the partial autocorrelation function from lag 1 to lag 40 for these thre
 
 ```{r}
 #Total Biomass Energy Production
-pacf_bio <-pacf(ts_data[,1],lag.max = 40)
+pacf_bio <-Pacf(ts_data[,1],lag.max = 40, main = "PACF of Total Biomass Energy Production")
 pacf_bio
+```
+```{r}
+# Total Renewable Energy Production
+pacf_ren <- Pacf(ts_data[,2],lag.max = 40, main = "PACF of Total Renewable Energy Production")
+pacf_ren
+```
+```{r}
+# Hydroelectric Power Consumption
+pacf_hyd <- Pacf(ts_data[,3],lag.max = 40, main = "PACF of Hydroelectric Power Consumption")
+pacf_hyd
 ```
 
 
