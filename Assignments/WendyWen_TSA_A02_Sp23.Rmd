@@ -1,9 +1,14 @@
 ---
 title: "ENV 790.30 - Time Series Analysis for Energy Data | Spring 2023"
-subtitle: "Assignment 2 - Due date 02/03/23"
 author: "Wendy Wen"
-output: pdf_document
+subtitle: "Assignment 2 - Due date 02/03/23"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
 geometry: margin=2.54cm
+editor_options:
+  chunk_output_type: inline
 ---
 
 ## Submission Instructions
@@ -69,12 +74,13 @@ head(ts_data)
 Compute mean and standard deviation for these three series.
 
 ```{r}
-# Standard deviation
-apply(ts_data,2,sd)
-```
-```{r}
 # Mean
 colMeans(ts_data)
+```
+
+```{r}
+# Standard deviation
+apply(ts_data,2,sd)
 ```
 
 
@@ -86,34 +92,45 @@ Display and interpret the time series plot for each of these variables. Try to m
 plot(ts_data[,"Total Biomass Energy Production"],type="l",col="brown",ylab="Biomass Energy Production [Trillion Btu]",main="Total Biomass Energy Production") 
 abline(h=mean(ts_data[,"Total Biomass Energy Production"]),col="red")
 ```
+
+Overall, the total biomass energy production showed an upward trend during the past five decades. Before 1990, the total biomass energy production increased from ~130 to ~280 (mean of the series) trillion Btu with small fluctuations, followed by much greater fluctuations during 1990 - 2001 around 250 trillion Btu. This suggests that there might exist some resistance to the production of biomass energy during this decade. Afterwards, the total biomass energy production continued to rise to around 450 trillion Btu with increasing fluctuations and saw a sharp decline during 2019 - 2020 but resumed increasing thereafter.
+
 ```{r}
 # Time series plot for Total Renewable Energy Production
 plot(ts_data[,"Total Renewable Energy Production"],type="l",col="green",ylab="Renewable Energy Production [Trillion Btu]",main="Total Renewable Energy Production") 
 abline(h=mean(ts_data[,"Total Renewable Energy Production"]),col="red")
 ```
+
+Overall, the total renewable energy production showed an upward trend during the past five decades. Before 2000, the total renewable energy production fluctuated between ~ 300 and ~ 600 trillion Btu (mean of the series) with two peaks around 1984 and 1997. Afterwards, the total renewable energy production rose rapidly and significantly to 1200 trillion Btu with increasing fluctuations. This implies that there might be policy supporting the development of renewable energy after 2000.
+
 ```{r}
 # Time series plot for Hydroelectric Power Consumption
 plot(ts_data[,"Hydroelectric Power Consumption"],type="l",col="blue",ylab="Hydroelectric Power Consumption [Trillion Btu]",main="Hydroelectric Power Consumption") 
 abline(h=mean(ts_data[,"Hydroelectric Power Consumption"]),col="red")
 ```
 
+Overall, the hydroelectric power consumption showed a downward trend with constant fluctuations but stayed in a relatively narrow range (150 ~ 350 trillion Btu) around the mean (~235 trillion Btu) during the past five decades. This possibly implies a decreasing dependence on hydroelectric power.
 
 ## Question 5
 Compute the correlation between these three series. Are they significantly correlated? Explain your answer.
 
+Since not all variables are normal distribution, and not all pairs are linearly/ monotonically related, I used Kendall rank correlation.
+
 ```{r}
-#Using rcorr()
-library("Hmisc")
-cor2 <- rcorr(as.matrix(ts_data[,1:3]),type="spearman")
+# Kendall rank correlation
+cor1 <- cor.test(ts_data[,1],ts_data[,2], method = "kendall")
+cor1
+cor2 <- cor.test(ts_data[,1],ts_data[,3], method = "kendall")
 cor2
+cor3 <- cor.test(ts_data[,2],ts_data[,3], method = "kendall")
+cor3
 ```
-```{r}
-# The correlation coefficient between total biomass energy production and total renewable energy production is 0.89 (p -> 0). Therefore, the positive correlation between those two parameters are strong and significant.
 
-# The correlation coefficient between total biomass energy production and hydroelectric power consumption is -0.29 (p -> 0). Therefore, the negative correlation between those two parameters are relatively weak but significant.
+The correlation coefficient between total biomass energy production and total renewable energy production is 0.71 (p -> 0). Therefore, the positive correlation between those two parameters is strong and significant.
 
-# The correlation coefficient between total renewable energy production and hydroelectric power consumption is 0.05 (p = 0.22). Therefore, the positive correlation between those two parameters are weak and insignificant.
-```
+The correlation coefficient between total biomass energy production and hydroelectric power consumption is -0.19 (p -> 0). Therefore, the negative correlation between those two parameters is relatively weak but significant.
+
+The correlation coefficient between total renewable energy production and hydroelectric power consumption is 0.06 (p = 0.03). Therefore, the positive correlation between those two parameters is very weak but significant at a significance level of 0.05.
 
 
 ## Question 6
@@ -125,17 +142,22 @@ acf_bio <- Acf(ts_data[,1],type="correlation",lag.max = 40,
                main = "ACF of Total Biomass Energy Production")
 acf_bio
 ```
+The ACF of time-series data of total biomass energy production shows very weak seasonality -- 3 peaks can be observed at 12 lags, 24 lags, and 36 lags. Overall, the ACF decreases with increasing lag but stay large (0.727~0.974) over the 40 lags.
+
 
 ```{r}
 # Total Renewable Energy Production
 acf_ren <- Acf(ts_data[,2],type="correlation",lag.max = 40, main = "ACF of Total Renewable Energy Production")
 acf_ren
 ```
+The ACF of time-series data of Total Renewable Energy Production shows weak seasonality (but stronger than that of Total Biomass Energy Production) -- 3 peaks can be observed at 12 lags, 24 lags, and 36 lags (i.e., decreases in the first three quarters of each year while increases in the last quarter of each year). Overall, the ACF decreases with increasing lag but stay relatively large and statistically significant (0.646~0.974) over the 40 lags.
+
 ```{r}
 # Hydroelectric Power Consumption
 acf_hyd <- Acf(ts_data[,3],type="correlation",lag.max = 40, main = "ACF of Hydroelectric Power Consumption")
 acf_hyd
 ```
+The ACF of time-series data of Hydroelectric Power Consumption shows strong seasonality. 3 positive peaks can be observed at 12 lags, 24 lags, and 36 lags while 2 negative peaks can be observed at 18/19 lags and 30 lags. Over the first year, the ACF decreases over the first half of the year and increases over the second half of the year. However, starting from the second year, the ACF becomes negative roughly during the second and third quarter. Overall, the ACF values decrease with increasing lag over the 40 lags, the positive ACF gets weaker while the negative ACF gets stronger and more statistically significant.
 
 
 ## Question 7
@@ -156,5 +178,4 @@ pacf_ren
 pacf_hyd <- Pacf(ts_data[,3],lag.max = 40, main = "PACF of Hydroelectric Power Consumption")
 pacf_hyd
 ```
-
-
+The PACF of these three time-series data is very different from their ACF. First, no seasonality can be observed. Second, the correlation values are much smaller and many are insignificant. Third, the three PACF all have negative peak at 13 lags, 25 lags, and 37 lags which have positive ACF.
