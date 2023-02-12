@@ -154,7 +154,7 @@ The ACF of time-series data of Total Renewable Energy Production shows weak seas
 
 ```{r}
 # Hydroelectric Power Consumption
-acf_hyd <- Acf(ts_data[,3],type="correlation",lag.max = 40, main = "ACF of Hydroelectric Power Consumption")
+acf_hyd <- Acf(ts_data[,3],type="correlation",lag.max = 40, main = "ACF of Hydroelectric Power Consumption", ylim = c(-1,1))
 acf_hyd
 ```
 The ACF of time-series data of Hydroelectric Power Consumption shows strong seasonality. 3 positive peaks can be observed at 12 lags, 24 lags, and 36 lags while 2 negative peaks can be observed at 18/19 lags and 30 lags. Over the first year, the ACF decreases over the first half of the year and increases over the second half of the year. However, starting from the second year, the ACF becomes negative roughly during the second and third quarter. Overall, the ACF values decrease with increasing lag over the 40 lags, the positive ACF gets weaker while the negative ACF gets stronger and more statistically significant.

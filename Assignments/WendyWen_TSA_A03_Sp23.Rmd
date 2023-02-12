@@ -65,15 +65,14 @@ head(ts_data)
 Create a plot window that has one row and three columns. And then for each object on your data frame, fill the plot window with time series plot, ACF and PACF. You may use the some code form A2, but I want all three plots on the same window this time. (Hint: use par() function)
 
 ```{r}
-# ACF
 par(mfrow=c(1,3))
 cc <- palette()
 
 for (i in 1:3){
   plot(ts_data[,i],type="l",col=cc[i+1],ylab= paste0(col_names[i]," [Trillion Btu]"),main=col_names[i]) 
   abline(h=mean(ts_data[,i]),col="black")
-  Acf(ts_data[,i],lag.max = 40, main = paste0("ACF of ",col_names[i]), ylim = c(-1,1))
-  Pacf(ts_data[,i],lag.max = 40, main = paste0("PACF of ",col_names[i]), ylim = c(-1,1))
+  Acf(ts_data[,i],lag.max = 40, main = "ACF", ylim = c(-1,1))
+  Pacf(ts_data[,i],lag.max = 40, main = "PACF", ylim = c(-1,1))
 }
 ```
 
@@ -90,68 +89,59 @@ Use the *lm()* function to fit a linear trend to the three time series. Ask R to
 t <- 1:nobs
 
 #Fit a linear trend
-linear1 <- lm(df_newdata[, 1] ~ t)
-linear2 <- lm(df_newdata[, 2] ~ t)
-linear3 <- lm(df_newdata[, 3] ~ t)
+linear <- list() 
+for (i in 1:3){
+  linear[[i]] <- summary(lm(df_newdata[, i] ~ t))
+}
+linear
 ```
 
-```{r}
-summary(linear1)
-```
-The linear regression of total biomass energy production has a slope of 0.48 and an intercept of 133.7.
-
-```{r}
-summary(linear2)
-```
-The linear regression of total renewable energy production has a slope of 0.94 and an intercept of 312.25.
-
-```{r}
-summary(linear3)
-```
-The linear regression of hydroelectric power consumption has a slope of -0.08 and an intercept of 259.90.
+The linear regression of total biomass energy production has a slope of 0.48 and an intercept of 133.7 (R^2 = 0.81,p = 0). Therefore, the total biomass energy production has a relatively obvious linear trend.
+The linear regression of total renewable energy production has a slope of 0.94 and an intercept of 312.25 (R^2 = 0.71,p = 0). Therefore, the total renewable energy production has a relatively obvious linear trend.
+The linear regression of hydroelectric power consumption has a slope of -0.08 and an intercept of 259.90 (R^2 = 0.10,p = 0). Therefore, the hydroelectric power consumption has a relatively weak linear trend, which suggests that it may not be appropriate to model the data using linear regression.
+** I saved the regression coefficients in Q4.
 
 ### Q4
 Use the regression coefficients from Q3 to detrend the series. Plot the detrended series and compare with the plots from Q1. What happened? Did anything change?
 
 ```{r}
-#remove the trend from series
-# Total Biomass Energy Production
-detrend1 <- ggplot(df_newdata,aes(x = energy_data$Month, y = df_newdata[,1])) +
-  geom_line(color = "red") +
-  geom_line(aes(y = linear1$residuals), color = "orange") +
-  xlab("Time") +
-  ylab("Biomass Energy Production [Trillion Btu]") +
-  labs(title = "Detrended Total Biomass Energy Production")
+detrend <- list() 
+beta0 <- list() 
+beta1 <- list() 
 
-# Total Renewable Energy Production
-detrend2 <- ggplot(df_newdata,aes(x = energy_data$Month, y = df_newdata[,2])) +
-  geom_line(color = "green") +
-  geom_line(aes(y = linear2$residuals), color = "orange") +
-  xlab("Time") +
-  ylab("Renewable Energy Production [Trillion Btu]") +
-  labs(title = "Detrended Total Renewable Energy Production")
+for (i in 1:3){
+  beta0[[i]] = as.numeric(linear[[i]]$coefficients[1])
+  beta1[[i]] = as.numeric(linear[[i]]$coefficients[2])
+  detrend[[i]] <- df_newdata[,i]-(beta0[[i]] + beta1[[i]]*t)
 
-# Hydroelectric Power Consumption
-detrend3 <- ggplot(df_newdata,aes(x = energy_data$Month, y = df_newdata[,3])) +
-  geom_line(color = "blue") +
-  geom_line(aes(y = linear3$residuals), color = "orange") +
-  xlab("Time") +
-  ylab("Hydroelectric Power Consumption [Trillion Btu]") +
-  labs(title = "Detrended Hydroelectric Power Consumption")
-
-detrend1
-detrend2
-detrend3
+  print(ggplot(df_newdata,aes(x = energy_data$Month, y = df_newdata[,i])) +
+    geom_line(color = cc[i+1]) +
+    geom_line(aes(y = detrend[[i]]), color = "orange") +
+    xlab("Time") +
+    ylab(paste0(col_names[i]," [Trillion Btu]")) +
+    labs(title = paste0("Detrended ", col_names[i])))
+}
 ```
 
+In the detrended data, the fluctuation pattern remains but the overall upward/downward trend is eliminated. In addition, the detrended data starts and ends around 0 and has a mean of 0.
 
 ### Q5
 Plot ACF and PACF for the detrended series and compare with the plots from Q1. Did the plots change? How?
 
 ```{r}
+par(mfrow=c(1,2))
 
+for (i in 1:3){
+  Acf(detrend[[i]],lag.max = 40, main = paste0("ACF of Detrended ",col_names[i]), ylim = c(-1,1))
+  Acf(ts_data[,i],lag.max = 40, main = "Original ACF", ylim = c(-1,1))
+  
+  Pacf(detrend[[i]],lag.max = 40, main = paste0("PACF of Detrended ",col_names[i]), ylim = c(-1,1))
+  Pacf(ts_data[,i],lag.max = 40, main = "Original PACF", ylim = c(-1,1))
+}
 ```
 
+The ACF plots have clear change: the detrended series have more obvious downward trend and seasonality than the original series. For example, the detrended series of total renewable energy production has clearer peak at 12 lags, 24 lags, and 36 lags. In addition, the ACF at 40 lags of the detrended series is below 0.5 while the number for the original series is around 0.6.
+In contrast, the PACF plots of the detrended series and the orginal series are quite similar in terms of both magnitude and variation.
 
 ## Seasonal Component
 
@@ -160,10 +150,81 @@ Set aside the detrended series and consider the original series again from Q1 to
 ### Q6
 Do the series seem to have a seasonal trend? Which serie/series? Use function *lm()* to fit a seasonal means model (i.e. using the seasonal dummies) to this/these time series. Ask R to print the summary of the regression. Interpret the regression output. Save the regression coefficients for further analysis.
 
+The seasonal means model of total biomass energy production has a December mean of 288.02 trillion Btu. All the other months have smaller average values than the December mean, with February being the smallest (i.e., has the largest effect on seasonality) and August being the largest. However, all the effects on seasonality are not statistically significant.
+The seasonal means model of total renewable energy production has a December mean of 601.02 trillion Btu. January, March, April, May, June, and July have larger average values than the December mean while the rest months have smaller values. September has the largest effect on seasonality while July has the smallest. However, all the effects on seasonality are not statistically significant.
+The seasonal means model of hydroelectric power consumption has a December mean of 237.23 trillion Btu. January, March, April, May, June, and July have larger average values than the December mean while the rest months have smaller values. September has the largest effect on seasonality while February has the smallest. All the effects on seasonality except for that of February and July are statistically significant.
+Therefore, only the hydroelectric power consumption have an obvious seasonal trend.
+
+```{r}
+dummies <- list()
+smm <- list()
+
+for (i in 1:3){
+  dummies[[i]] <- seasonaldummy(ts_data[,i])
+  smm[[i]] <- summary(lm(df_newdata[,i]~dummies[[i]]))
+}
+smm
+
+#Store regression coefficients
+beta_int <- list()
+beta_coeff <- list()
+
+for (i in 1:3){
+  beta_int[[i]] = as.numeric(smm[[i]]$coefficients[1])
+  beta_coeff[[i]] = as.numeric(smm[[i]]$coefficients[2:12])
+}
+```
+
 ### Q7
 Use the regression coefficients from Q6 to deseason the series. Plot the deseason series and compare with the plots from part Q1. Did anything change?
+
+```{r}
+#compute seasonal component
+seas_comp_bio=array(0,nobs)
+for(i in 1:nobs)
+  seas_comp_bio[i]=(beta_int[[1]]+beta_coeff[[1]]%*%dummies[[1]][i,])
+
+seas_comp_ren=array(0,nobs)
+for(i in 1:nobs)
+  seas_comp_ren[i]=(beta_int[[2]]+beta_coeff[[2]]%*%dummies[[2]][i,])
+
+seas_comp_hyd=array(0,nobs)
+for(i in 1:nobs)
+  seas_comp_hyd[i]=(beta_int[[3]]+beta_coeff[[3]]%*%dummies[[3]][i,])
+
+#Removing seasonal component
+deseason1 <- df_newdata[,1]-seas_comp_bio
+deseason2 <- df_newdata[,2]-seas_comp_ren
+deseason3 <- df_newdata[,3]-seas_comp_hyd
+
+deseason <- list(deseason1,deseason2,deseason3)
+for (i in 1:3){
+  print(ggplot(df_newdata,aes(x = energy_data$Month, y = df_newdata[,i])) +
+    geom_line(color = cc[i+1]) +
+    geom_line(aes(y = deseason[[i]]), color = "purple") +
+    xlab("Time") +
+    ylab(paste0(col_names[i]," [Trillion Btu]")) +
+    labs(title = paste0("Deseason Series of ", col_names[i])))
+}
+```
+
+In the deseason series of data, all the three series have smaller value and less fluctuations, especially the hydroelectric power consumption, indicating that it has greater seasonality than the other two series.
+
 
 ### Q8
 Plot ACF and PACF for the deseason series and compare with the plots from Q1. Did the plots change? How?
 
+```{r}
+par(mfrow=c(1,2))
 
+for (i in 1:3){
+  Acf(deseason[[i]],lag.max = 40, main = paste0("ACF of Deseason ",col_names[i]), ylim = c(-1,1))
+  Acf(ts_data[,i],lag.max = 40, main = "Original ACF", ylim = c(-1,1))
+  
+  Pacf(deseason[[i]],lag.max = 40, main = paste0("PACF of Deseason ",col_names[i]), ylim = c(-1,1))
+  Pacf(ts_data[,i],lag.max = 40, main = "Original PACF", ylim = c(-1,1))
+}
+```
+
+The ACF the three deseason series show weaker or even no seasonality, especially the hydroelectric power consumption.
+The PACF of the three deseason series are much smaller in magnitude.
