@@ -69,7 +69,7 @@ par(mfrow=c(1,3))
 cc <- palette()
 
 for (i in 1:3){
-  plot(ts_data[,i],type="l",col=cc[i+1],ylab= paste0(col_names[i]," [Trillion Btu]"),main=col_names[i]) 
+  plot(ts_data[,i],type="l",col=cc[i+1],ylab= paste0(col_names[i]," [Trillion Btu]"),main=col_names[i])
   abline(h=mean(ts_data[,i]),col="black")
   Acf(ts_data[,i],lag.max = 40, main = "ACF", ylim = c(-1,1))
   Pacf(ts_data[,i],lag.max = 40, main = "PACF", ylim = c(-1,1))
