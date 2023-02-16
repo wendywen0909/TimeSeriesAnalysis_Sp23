@@ -43,7 +43,7 @@ energy_data <- read_excel(path="/Users/wendywen/Desktop/ENV790/wendywen_TSA/Data
 #Now let's extract the column names from row 11
 read_col_names <- read_excel(path="/Users/wendywen/Desktop/ENV790/wendywen_TSA/Data/Table_10.1_Renewable_Energy_Production_and_Consumption_by_Source.xlsx",skip = 10,n_max = 1, sheet="Monthly Data",col_names=FALSE) 
 colnames(energy_data) <- read_col_names
-Time <- energy_data[,1]
+date <- energy_data[,1]
 
 data4 <- energy_data[,c("Total Renewable Energy Production")]
 col_names <- colnames(data4)
@@ -68,7 +68,7 @@ Try differencing at lag 1 only once, i.e., make `lag=1` and `differences=1`. Plo
 ```{r}
 dif <- diff(ts_data4[,1], lag = 1, differences = 1)
 dif <- as.data.frame(dif)
-plot(dif[,1],type="l",col="brown",ylab= paste0(col_names[1]," [Trillion Btu]"),
+plot(dif[,1],type="l",col="blue",ylab= paste0(col_names[1]," [Trillion Btu]"),
      main=paste0("Differenced ",col_names[1]))
 ```
 
@@ -93,8 +93,7 @@ beta1 = as.numeric(linear$coefficients[2])
 detrend <- df_data4[,1]-(beta0 + beta1*t)
 
 det <- as.data.frame(detrend)
-plot(Time, det[,1], type="l",col="orange", xlab = "Time", ylab= paste0(col_names[1]," [Trillion Btu]"),
-     main=paste0("Detrended ",col_names[1]))
+plot(Time, det[,1], type="l",col="orange", xlab = "Time", ylab= paste0(col_names[1]," [Trillion Btu]"),main=paste0("Detrended ",col_names[1]))
 ```
 
 
@@ -103,8 +102,10 @@ Create a data frame with 4 columns: month, original series, detrended by Regress
 
 ```{r}
 #Data frame - remember to not include January 1973
-
-
+df_ren <- data.frame(date[2:597,], df_data4[2:597,], det[2:597,], dif)
+colnames(df_ren) <- c("Date", "Original", "Detrended", "Differenced")
+col_ren <- colnames(df_ren[,2:4])
+df_ren
 ```
 
 ### Q4
@@ -112,7 +113,17 @@ Using ggplot() create a line plot that shows the three series together. Make sur
 
 ```{r}
 #Use ggplot
-
+cols <- c("Original" = "green", "Detrended" = "orange", "Differenced" = "blue")
+plt <- ggplot(df_ren) + 
+  geom_line(aes(x = Date, y = Original, color = "Original")) +
+  geom_line(aes(x = Date, y = Detrended, color = "Detrended")) +
+  geom_line(aes(x = Date, y = Differenced, color = "Differenced")) +
+  xlab("Date") + 
+  ylab("Energy Production [Trillion Btu]") +
+  labs(title ="Original, Detrended, and Differenced Series of Total Renewable Energy Production") +
+  scale_color_manual(name = "Series", values = cols) +
+  theme_minimal()
+plt
 ```
 
 
@@ -121,15 +132,28 @@ Plot the ACF for the three series and compare the plots. Add the argument `ylim=
 
 ```{r}
 #Compare ACFs
-
+par(mfrow=c(1,3))
+for (i in 1:3){
+  Acf(df_ren[i+1],lag.max = 40, main = paste0("ACF of ",col_ren[i]," Series"), ylim = c(-0.5,1))
+}
 ```
-
+Differencing is more efficient in eliminating the trend.
 
 ### Q6
 Compute the Seasonal Mann-Kendall and ADF Test for the original "Total Renewable Energy Production" series. Ask R to print the results. Interpret the results for both test. Whats the conclusion from the Seasonal Mann Kendall test? What's the conclusion for the ADF test? Do they match what you observed in Q2? Recall that having a unit root means the series has a stochastic trend. And when a series has stochastic trend we need to use a different procedure to remove the trend.
 
 ```{r}
+# 
+df_ren3 <- df_ren[,2:4]
+ts_ren <- ts(df_ren3, start = c(1973,2), frequency = 12)
+# Seasonal Mann Kendall test
+SMKtest <- SeasonalMannKendall(ts_ren[,1])
+print("Results for Seasonal Mann Kendall")
+print(summary(SMKtest))
 
+# ADF test
+print("Results for ADF test")
+print(adf.test(ts_ren[,1],alternative = "stationary"))
 ```
 
 ### Q7
@@ -137,7 +161,18 @@ Compute the Seasonal Mann-Kendall and ADF Test for the original "Total Renewable
 Aggregate the original "Total Renewable Energy Production" series by year. You can use the same procedure we used in class. Store series in a matrix where rows represent months and columns represent years. And then take the columns mean using function colMeans(). Recall the goal is the remove the seasonal variation from the series to check for trend. 
 
 ```{r}
+ts_ren2 <- as.ts(ts_ren[1:588,])
+date2 <- as_date(df_ren[,1], tz = NULL)
+date2 <- date2[1:588]
+df_ren2 <- cbind(date2, ts_ren2)
 
+ren2_matrix <- matrix(ts_ren2[,1],byrow=FALSE,nrow=12)
+ren2_yearly <- colMeans(ren2_matrix)
+
+library(dplyr)  #move this to package chunk later
+year <- c(year(first(date2)):year(last(date2)))
+
+df_ren2_yearly <- data.frame(year, ren2_yearly)
 ```
 
 ### Q8

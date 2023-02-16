@@ -2,6 +2,8 @@
 title: "M4: Outliers and Missing Data"
 author: "Luana Lima"
 output: pdf_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 
@@ -41,7 +43,7 @@ Today we will work with wind speed data.
 #Importing time series data from text file#
 wind_data <- read.csv(file="./Data/Wind_Speed_PortArthurTX_Processed.csv",header=TRUE,stringsAsFactors = TRUE)
 
-#creating data object
+#creating date object
 wind_data$DATE <- ym(wind_data$DATE)
 
 ```
@@ -106,16 +108,22 @@ Additional info on decompose()
 
 ```{r}
 #Ex1: Using R decompose function decompose the wind data in seasonal, trend and random
-
+dec_wind <- decompose(clean_wind_data)
+dec_wind2 <- stl(clean_wind_data, s.window = "periodic")
+plot(dec_wind2)
+# Bars on the right: the degree of zoom in - the longer the bar, the less significant the component
 
 #Ex2: Store the three component in separate vector
-  
+tre_wind <- dec_wind$trend
+sea_wind <- dec_wind$seasonal
+ran_wind <- dec_wind$random
 
 #Ex3: Create one data frame with all three vector and the Date columns from wind_data
-
+df_wind <- data.frame("Date" = wind_data$DATE, tre_wind, sea_wind, ran_wind)
 
 #Ex4: Inspect the data frame using head() and tail()
-
+head(df_wind,15)
+tail(df_wind,10)
 
 # Discuss the results
 

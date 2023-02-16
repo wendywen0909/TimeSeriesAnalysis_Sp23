@@ -123,7 +123,7 @@ for (i in 1:3){
 }
 ```
 
-In the detrended data, the fluctuation pattern remains but the overall upward/downward trend is eliminated. In addition, the detrended data starts and ends around 0 and has a mean of 0.
+In the detrended data, the fluctuation pattern remains but the overall upward/downward trend is eliminated. However, some trends still present and some different trends were created (meaning linear regression is not the most ideal model). In addition, the detrended data starts and ends around 0 and has a mean of 0.
 
 ### Q5
 Plot ACF and PACF for the detrended series and compare with the plots from Q1. Did the plots change? How?
@@ -140,6 +140,8 @@ for (i in 1:3){
 }
 ```
 
+Smaller ACF and PACF for detrended series.
+
 The ACF plots have clear change: the detrended series have more obvious downward trend and seasonality than the original series. For example, the detrended series of total renewable energy production has clearer peak at 12 lags, 24 lags, and 36 lags. In addition, the ACF at 40 lags of the detrended series is below 0.5 while the number for the original series is around 0.6.
 In contrast, the PACF plots of the detrended series and the orginal series are quite similar in terms of both magnitude and variation.
 
@@ -150,8 +152,8 @@ Set aside the detrended series and consider the original series again from Q1 to
 ### Q6
 Do the series seem to have a seasonal trend? Which serie/series? Use function *lm()* to fit a seasonal means model (i.e. using the seasonal dummies) to this/these time series. Ask R to print the summary of the regression. Interpret the regression output. Save the regression coefficients for further analysis.
 
-The seasonal means model of total biomass energy production has a December mean of 288.02 trillion Btu. All the other months have smaller average values than the December mean, with February being the smallest (i.e., has the largest effect on seasonality) and August being the largest. However, all the effects on seasonality are not statistically significant.
-The seasonal means model of total renewable energy production has a December mean of 601.02 trillion Btu. January, March, April, May, June, and July have larger average values than the December mean while the rest months have smaller values. September has the largest effect on seasonality while July has the smallest. However, all the effects on seasonality are not statistically significant.
+The seasonal means model of total biomass energy production has a December mean of 288.02 trillion Btu. All the other months have smaller average values than the December mean, with February being the smallest (i.e., has the largest effect on seasonality) and August being the largest. However, all the effects on seasonality are not statistically significant. -> The seasonal means model is not a good representation of the series.
+The seasonal means model of total renewable energy production has a December mean of 601.02 trillion Btu. January, March, April, May, June, and July have larger average values than the December mean while the rest months have smaller values. September has the largest effect on seasonality while July has the smallest. However, all the effects on seasonality are not statistically significant. -> The seasonal means model is not a good representation of the series.
 The seasonal means model of hydroelectric power consumption has a December mean of 237.23 trillion Btu. January, March, April, May, June, and July have larger average values than the December mean while the rest months have smaller values. September has the largest effect on seasonality while February has the smallest. All the effects on seasonality except for that of February and July are statistically significant.
 Therefore, only the hydroelectric power consumption have an obvious seasonal trend.
 
@@ -192,7 +194,7 @@ seas_comp_hyd=array(0,nobs)
 for(i in 1:nobs)
   seas_comp_hyd[i]=(beta_int[[3]]+beta_coeff[[3]]%*%dummies[[3]][i,])
 
-#Removing seasonal component
+#Removing seasonal component (from the original series)
 deseason1 <- df_newdata[,1]-seas_comp_bio
 deseason2 <- df_newdata[,2]-seas_comp_ren
 deseason3 <- df_newdata[,3]-seas_comp_hyd
