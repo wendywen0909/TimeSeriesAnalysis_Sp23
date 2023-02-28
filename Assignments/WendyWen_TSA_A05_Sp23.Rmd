@@ -1,0 +1,162 @@
+---
+title: "ENV 790.30 - Time Series Analysis for Energy Data | Spring 2023"
+subtitle: "Assignment 5 - Due date 02/27/23"
+author: "Wendy Wen"
+output: pdf_document
+geometry: margin=2.54cm
+editor_options: 
+  chunk_output_type: console
+---
+
+## Directions
+  
+You should open the .rmd file corresponding to this assignment on RStudio. The file is available on our class repository on Github. And to do so you will need to fork our repository and link it to your RStudio.  
+
+Once you have the file open on your local machine the first thing you will do is rename the file such that it includes your first and last name (e.g., "LuanaLima_TSA_A05_Sp23.Rmd"). Then change "Student Name" on line 4 with your name. 
+
+Then you will start working through the assignment by  **creating code and output** that answer each question. Be sure to use this assignment document. Your report should contain the answer to each question and any plots/tables you obtained (when applicable).
+
+When you have completed the assignment, **Knit** the text and code into a single PDF file. Submit this pdf using Sakai. 
+
+R packages needed for this assignment: "xlsx" or "readxl", "ggplot2", "forecast","tseries", and "Kendall". Install these packages, if you haven't done yet. Do not forget to load them before running your script, since they are NOT default packages.\\
+
+```{r}
+#Load/install required package here
+library(xlsx)
+library(forecast)
+library(tseries)
+library(ggplot2)
+library(Kendall)
+library(lubridate)
+library(tidyverse)  #load this package so yon clean the data frame using pipes
+```
+
+## Decomposing Time Series
+
+Consider the same data you used for A04 from the spreadsheet "Table_10.1_Renewable_Energy_Production_and_Consumption_by_Source.xlsx".
+
+```{r}
+#Importing data set - using xlsx package
+energy_data <- read.xlsx(file="../Data/Table_10.1_Renewable_Energy_Production_and_Consumption_by_Source.xlsx",header=FALSE,startRow = 13,sheetIndex=1) #startRow is equivalent to skip on read.table
+
+#Now let's extract the column names from row 11 only
+read_col_names <- read.xlsx(file="../Data/Table_10.1_Renewable_Energy_Production_and_Consumption_by_Source.xlsx",header=FALSE,startRow = 11,endRow=11,sheetIndex=1)
+
+colnames(energy_data) <- read_col_names
+head(energy_data)
+
+nobs=nrow(energy_data)
+nvar=ncol(energy_data)
+
+```
+
+### Q1
+
+For this assignment you will work only with the following columns: Solar Energy Consumption and Wind Energy Consumption. Create a data frame structure with these two time series only and the Date column. Drop the rows with *Not Available* and convert the columns to numeric. You can use filtering to eliminate the initial rows or convert to numeric and then use the drop_na() function. If you are familiar with pipes for data wrangling, try using it!
+
+```{r}
+date <- energy_data[,1]
+data5 <- energy_data[,c("Solar Energy Consumption", "Wind Energy Consumption")]
+col_names <- colnames(data5)
+data5$`Solar Energy Consumption` <- as.numeric(data5$`Solar Energy Consumption`)
+data5$`Wind Energy Consumption` <- as.numeric(data5$`Wind Energy Consumption`)
+df <- data.frame(date,data5)
+df <- drop_na(df)
+colnames(df) <- c("Date", "Solar", "Wind")
+data5 <- df[,2:3]
+```
+
+
+### Q2
+
+Plot the Solar and Wind energy consumption over time using ggplot. Plot each series on a separate graph. No need to add legend. Add informative names to the y axis using `ylab()`. Explore the function scale_x\_date() on ggplot and see if you can change the x axis to improve your plot. Hint: use *scale_x\_date(date_breaks = "5 years", date_labels = "%Y")")*
+
+```{r}
+cc <- palette()
+for (i in 2:3){
+  print(ggplot(df,aes(x = Date, y = df[,i])) +
+    geom_line(color = cc[i]) +
+    xlab("Date") +
+    ylab(paste0(col_names[i-1]," [Trillion Btu]")) +
+    labs(title = col_names[i-1]) +
+    scale_x_date(date_breaks = "5 years", date_labels = "%Y") +
+    theme_bw())
+}
+```
+
+### Q3
+
+Now plot both series in the same graph, also using ggplot(). Look at lines 141-148 of the file `M4_OutliersMissingData_Part2_Complete.Rmd` to learn how to manually add a legend to ggplot. Make the solar energy consumption red and wind energy consumption blue. Add informative name to the y axis using `ylab("Energy Consumption)`. And use function scale_x\_date() again to improve x axis.
+
+```{r}
+cols <- c("Solar" = cc[2], "Wind" = cc[3])
+ggplot(df) +
+  geom_line(aes(x = Date, y = Solar, color = "Solar")) +
+  geom_line(aes(x = Date, y = Wind, color = "Wind")) +
+  xlab("Date") +
+  ylab("Energy Consumption [Trillion Btu]") +
+  labs(title = "Solar and Wind Energy Consumption") +
+  scale_color_manual(name = "Energy", values = cols) +
+  scale_x_date(date_breaks = "5 years", date_labels = "%Y") +
+  theme_bw()
+```
+
+### Q4
+
+Transform wind and solar series into a time series object and apply the decompose function on them using the additive option, i.e., `decompose(ts_data, type = "additive")`. What can you say about the trend component? What about the random component? Does the random component look random? Or does it appear to still have some seasonality on it?
+
+```{r}
+ts_data5 <- ts(data5, start = c(1984,1), frequency = 12)
+
+my_plot.decomposed.ts = function(x, title="", ...) {
+  xx <- x$x
+  if (is.null(xx)) 
+    xx <- with(x, if (type == "additive") 
+      random + trend + seasonal
+      else random * trend * seasonal)
+  plot(cbind(observed = xx, trend = x$trend, seasonal = x$seasonal, random = x$random), 
+       main=title, ...)
+}
+
+for (i in 1:2){
+  deca <- decompose(ts_data5[,i], type = "additive")
+  my_plot.decomposed.ts(deca, paste0("Decomposition of Additive ",col_names[i]))
+}
+```
+
+> Answer: For both energy consumption series, there are almost no trend components before ~2010 (the year for wind is earlier than solar); however, there are clear upward trends after that. The random component of both energy consumption series does not look random and appear to still have some seasonality, especially before ~2012 for solar and ~2007 for wind.
+
+
+### Q5
+
+Use the decompose function again but now change the type of the seasonal component from additive to multiplicative. What happened to the random component this time?
+
+```{r}
+for (i in 1:2){
+  decm <- decompose(ts_data5[,i], type = "multiplicative")
+  my_plot.decomposed.ts(decm, paste0("Decomposition of Multiplicative ",col_names[i]))
+}
+```
+
+> Answer: The random component for solar before ~1990 looks random but appears to have some seasonality after that. The random component for wind before ~2001 looks random but appears to have some seasonality after that.
+
+### Q6
+
+When fitting a model to this data, do you think you need all the historical data? Think about the data from 90s and early 20s. Are there any information from those years we might need to forecast the next six months of Solar and/or Wind consumption. Explain your response.
+
+> Answer: For both energy consumption series, the historical data from 90s and early 20s are extremely small (very close to 0) and stable compared to the data after ~2007 for wind and ~2012 for solar. I don't think there are any information from those years we may need to forecast the next six months of energy consumption.
+
+### Q7
+
+Create a new time series object where historical data starts on January 2012. Hint: use `filter()` function so that you don't need to point to row numbers, .i.e, `filter(xxxx, year(Date) >= 2012 )`. Apply the decompose function `type=additive` to this new time series. Comment the results. Does the random component look random? Think about our discussion in class about seasonal components that depends on the level of the series. 
+
+```{r}
+df_new <- filter(df, year(Date) >= 2012)
+ts_new <- ts(df_new, start = c(2012,1), frequency = 12)
+for (i in 1:2){
+  deca_new <- decompose(ts_new[,i+1], type = "additive")
+  my_plot.decomposed.ts(deca_new, paste0("Decomposition of Additive ",col_names[i]))
+}
+```
+
+> Answer: The random component for solar between ~2017 to 2019 looks random but appears to have some seasonality for the rest of the time. The random component for wind after 2012 looks quite random. In both series that start from 2012, the magnitude of the seasonal fluctuations almost does not vary (slightly increases) with the level of time series. So, it is more appropriate to apply the additive model to decompose the new series than before and thus the random components look more random.
