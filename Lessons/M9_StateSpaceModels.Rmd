@@ -43,7 +43,7 @@ For this module we will continue to work with the electricity retail price in US
 
 #Importing time series data from text file#
 electricity_price <- read.csv(
-  file="./Data/Average_retail_price_of_electricity_United_States_monthly.csv",
+  file="../Data/Average_retail_price_of_electricity_United_States_monthly.csv",
   header=TRUE,
   skip=4)
 
@@ -172,7 +172,7 @@ Notice the residual series seems to be random and ACF shows no significant self 
 Let's start by trying an exponential smoothing under the state space model. In teh videos we went over the state equation for level only. But the ES can be used to represent trend and seasonal as well, these are know as ETS (Exponential Trend and Seasonal) models. We will talk in more details on M11.
 
 ```{r}
-SSES_seas <- es(ts_price,model="ZZZ",h=n_for,holdout=FALSE,silent="none")
+SSES_seas <- es(ts_price,model="ZZZ",h=n_for,holdout=FALSE) #,silent="none")
 plot(SSES_seas)
 checkresiduals(SSES_seas)
 ```

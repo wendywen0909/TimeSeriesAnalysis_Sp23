@@ -34,7 +34,7 @@ Your goal is to forecast **daily** demand for the month of January 2011 based on
 
 ## WRANGLE/PROCESS THE DATASET
 
-You will need to transform hourly data into daily data. See the Rmd file from Lesson 11 for instructions on how to aggregate your dataset using pipes.
+You will need to transform hourly data into daily data. See the Rmd file from Lesson 10 for instructions on how to aggregate your dataset using pipes.
 
 Note that I provided hourly data. You shoudl take teh **average** of the 24 hours to obtain the daily load.
 
