@@ -83,9 +83,9 @@ Research question: Can you forecast temperature for the next two months?
 
 ```{r}
 # Import both datasets using the read.csv function.
-Rainfall_BR <- read.csv("../Data/pr_1901_2016_BRA.csv", stringsAsFactors = TRUE)
+Rainfall_BR <- read.csv("./Data/pr_1901_2016_BRA.csv", stringsAsFactors = TRUE)
 
-Temp_BR <- read.csv("../Data/tas_1901_2016_BRA.csv", stringsAsFactors = TRUE)
+Temp_BR <- read.csv("./Data/tas_1901_2016_BRA.csv", stringsAsFactors = TRUE)
 
 # Tidy the rainfall data sets.
 #a Rename the column with Rainfall to get rid of the dots.

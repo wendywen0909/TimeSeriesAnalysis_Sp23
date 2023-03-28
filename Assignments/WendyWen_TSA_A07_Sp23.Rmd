@@ -1,0 +1,222 @@
+---
+title: "ENV 790.30 - Time Series Analysis for Energy Data | Spring 2023"
+subtitle: "Assignment 7 - Due date 03/20/23"
+author: "Wendy Wen"
+output: pdf_document
+geometry: margin=2.54cm
+editor_options: 
+  chunk_output_type: inline
+---
+
+## Directions
+
+You should open the .rmd file corresponding to this assignment on RStudio. The file is available on our class repository on Github. And to do so you will need to fork our repository and link it to your RStudio.  
+
+Once you have the file open on your local machine the first thing you will do is rename the file such that it includes your first and last name (e.g., "LuanaLima_TSA_A07_Sp23.Rmd"). Then change "Student Name" on line 4 with your name. 
+
+Then you will start working through the assignment by  **creating code and output** that answer each question. Be sure to use this assignment document. Your report should contain the answer to each question and any plots/tables you obtained (when applicable).
+
+When you have completed the assignment, **Knit** the text and code into a single PDF file. Submit this pdf using Sakai. 
+
+```{r setup, include=FALSE} 
+knitr::opts_chunk$set(echo = TRUE,tidy.opts=list(width.cutoff=80), tidy=FALSE) 
+```
+
+## Set up
+
+```{r}
+#Load/install required package here
+library(lubridate)
+library(ggplot2)
+library(forecast)  
+library(Kendall)
+library(tseries)
+library(outliers)
+library(tidyverse)
+
+#install.packages("smooth")
+library(smooth)
+```
+
+## Importing and processing the data set
+
+Consider the data from the file "Net_generation_United_States_all_sectors_monthly.csv". The data corresponds to the monthly net generation from January 2001 to December 2020 by source and is provided by the US Energy Information and Administration. **You will work with the natural gas column only**.
+
+Packages needed for this assignment: "forecast","tseries". Do not forget to load them before running your script, since they are NOT default packages.\\
+
+### Q1
+
+Import the csv file and create a time series object for natural gas. Make you sure you specify the **start=** and **frequency=** arguments. Plot the time series over time, ACF and PACF.
+
+```{r}
+gen_data <- read.csv(file="../Data/Net_generation_United_States_all_sectors_monthly.csv", skip = 4, header = TRUE, dec = ".", sep=",",stringsAsFactors = TRUE)
+df_gen <- apply(gen_data, 2, rev)
+df_gen <- as.data.frame(df_gen)
+
+date <- df_gen[,1]
+my_date <- my(date)
+
+ng_data <- df_gen[,4]
+df_ng <- as.data.frame(ng_data)
+colnames(df_ng) <- c("Natural Gas Net Generation")
+col_names <- colnames(df_ng)
+ts_ng <- ts(df_ng, start = c(2001,1), frequency=12)
+```
+
+```{r}
+plot(ts_ng[,1],type = "l",col = "blue",ylab = ("Net Generation [Thousand Mega Watt Hours]"),
+     main = paste0(col_names[1], " in the U.S."))
+
+par(mfrow = c(1,2))
+Acf(ts_ng[,1], lag.max = 40, main = ("ACF"))
+Pacf(ts_ng[,1], lag.max = 40, main = ("PACF"))
+```
+
+### Q2
+
+Using the $decompose()$ or $stl()$ and the $seasadj()$ functions create a series without the seasonal component, i.e., a deseasonalized natural gas series. Plot the deseasonalized series over time and corresponding ACF and PACF. Compare with the plots obtained in Q1.
+
+```{r}
+dec_ng <- decompose(ts_ng[,1], type = "additive")
+dese_ng <- seasadj(dec_ng)
+plot(dese_ng,type = "l",col = "green",ylab = ("Net Generation [Thousand Mega Watt Hours]"),
+     main = paste0("Deseasonalized Series of ", col_names[1]))
+
+par(mfrow = c(1,2))
+Acf(dese_ng, lag.max = 40, main = ("Deseasonalized ACF"))
+Pacf(dese_ng, lag.max = 40, main = ("Deseasonalized PACF"))
+```
+
+> Answer: The deseasonalized series over time and the ACF plot (a slow decay) show almost no seasonality. The PACF values are smaller and more values are insignificannt.
+
+
+## Modeling the seasonally adjusted or deseasonalized series
+
+### Q3
+
+Run the ADF test and Mann Kendall test on the deseasonalized data from Q2. Report and explain the results.
+
+```{r}
+# Seasonal Mann Kendall test of the original series
+MKtest <- MannKendall(dese_ng)
+print("Results for Mann Kendall")
+print(summary(MKtest))
+
+# ADF test of the original series
+print("Results for ADF test")
+print(adf.test(dese_ng, alternative = "stationary"))
+```
+
+> Answer: The Kendall rank correlation coefficient is 0.822 and the corresponding two-sided p-value is smaller than 2.22e-16, and therefore, we will reject the null hypothesis and conclude that a deterministic trend is present in the data.
+In the ADF test, the test statistic and p-value are -5.6975 and 0.01 respectively. Since the p-value is smaller than 0.05, we will reject the null hypothesis. In other words, the time series is stationary and does not have a stochastic trend.
+
+### Q4
+
+Using the plots from Q2 and test results from Q3 identify the ARIMA model parameters $p,d$ and $q$. Note that in this case because you removed the seasonal component prior to identifying the model you don't need to worry about seasonal component. Clearly state your criteria and any additional function in R you might use. DO NOT use the $auto.arima()$ function. You will be evaluated on ability to can read the plots and interpret the test results.
+
+```{r}
+# Find out how many time we need to difference
+n_diff <- ndiffs(dese_ng)
+cat("Number of differencing needed: ",n_diff)
+```
+
+> Answer: By conducting ndiffs() test, we know that d = 1. The ACF plot shows a slow decay and the PACF plot shows a cut-off at lag 1, and therefore I can identify p = 1, q = 0. Therefore, this is a ARIMA(1,1,0) model.
+
+### Q5
+
+Use $Arima()$ from package "forecast" to fit an ARIMA model to your series considering the order estimated in Q4. You should allow constants in the model, i.e., $include.mean = TRUE$ or $include.drift=TRUE$. **Print the coefficients** in your report. Hint: use the $cat()$ function to print.
+
+```{r}
+fit <- Arima(dese_ng, order=c(1,1,0), include.mean = TRUE)
+cat("Coefficients: ",fit$coef)
+```
+
+### Q6
+
+Now plot the residuals of the ARIMA fit from Q5 along with residuals ACF and PACF on the same window. You may use the $checkresiduals()$ function to automatically generate the three plots. Do the residual series look like a white noise series? Why?
+
+```{r}
+checkresiduals(fit)
+```
+
+```{r}
+par(mfrow = c(1,3))
+ts.plot(fit$residuals)
+Acf(fit$residuals, lag.max = 40, main = ("ACF of Residuals"))
+Pacf(fit$residuals, lag.max = 40, main = ("PACF of Residuals"))
+```
+
+> Answer: The residual series looks like a white noise series. Because we can tell from the graph of residual series over time that the values are identically distributed with a mean of zero. Additionally, the ACF and PACF values are very small (most values smaller between -0.1 to 0.1), which shows that each value has almost no correlation with all other values in the series.
+
+## Modeling the original series (with seasonality)
+
+### Q7
+
+Repeat Q4-Q6 for the original series (the complete series that has the seasonal component). Note that when you model the seasonal series, you need to specify the seasonal part of the ARIMA model as well, i.e., $P$, $D$ and $Q$.
+
+```{r}
+# Find out how many time we need to difference
+ns_diff <- nsdiffs(ts_ng)
+cat("Number of seasonal differencing needed: ",ns_diff)
+```
+
+
+```{r}
+ng_trend_diff <- diff(ts_ng[,1],lag = 1, differences=1)
+ng_both_diff <- diff(ng_trend_diff,lag = 12, differences=1)
+
+par(mfrow=c(1,2))
+Acf(ng_both_diff,lag.max=60,main="Twice-Differenced ACF",ylim=c(-1,1))
+Pacf(ng_both_diff,lag.max=60,main="Twice-Differenced PACF",ylim=c(-1,1))
+```
+
+> Answer: ACF has one spike at lag 12 and PACF has 2 spikes at lag 12 and 24. This indicates a seasonal moving average (SMA). Therefore, the order of seasonal component is P = 0 and Q = 1. We know from nsdiffs that D = 1. For the non-seasonal component, there is a spike at lag 2 in both ACF and PACF plot,indicating p = q = 2. We know from ndiffs that d = 1.
+
+```{r}
+fit2 <- Arima(ts_ng, order=c(2,1,2), seasonal=c(0,1,1), include.mean = TRUE)
+cat("Coefficients: ",fit2$coef)
+```
+
+```{r}
+checkresiduals(fit2)
+
+par(mfrow = c(1,3))
+ts.plot(fit2$residuals)
+Acf(fit2$residuals, lag.max = 40, main = ("ACF of Residuals"))
+Pacf(fit2$residuals, lag.max = 40, main = ("PACF of Residuals"))
+```
+
+> Answer: The residual series looks like a white noise series. Because we can tell from the graph of residual series over time that the values are identically distributed with a mean of zero. Additionally, the ACF and PACF values are very small (most values smaller between -0.1 to 0.1), which shows that each value has almost no correlation with all other values in the series.
+
+### Q8
+
+Compare the residual series for Q7 and Q6. Can you tell which ARIMA model is better representing the Natural Gas Series? Is that a fair comparison? Explain your response.
+
+> Answer: The ARIMA model of the original series seems to be better because its residual looks more like a white noise. This is not a fair comparison since the seasonal component should be added back to represent the natural gas series.
+
+
+## Checking your model with the auto.arima()
+
+**Please** do not change your answers for Q4 and Q7 after you ran the $auto.arima()$. It is **ok** if you didn't get all orders correctly. You will not loose points for not having the same order as the $auto.arima()$.
+
+### Q9
+
+Use the $auto.arima()$ command on the **deseasonalized series** to let R choose the model parameter for you. What's the order of the best ARIMA model? Does it match what you specified in Q4?
+
+```{r}
+dese_autofit <- auto.arima(dese_ng, max.D = 0, max.P = 0, max.Q = 0)
+print(dese_autofit)
+```
+
+> Answer: The order of the ARIMA model is p = 1, d = 1, q = 2. The p and d value matches what I specifed in Q4, but I identified q = 0.
+
+### Q10
+
+Use the $auto.arima()$ command on the **original series** to let R choose the model parameters for you. Does it match what you specified in Q7?
+
+```{r}
+ori_autofit <- auto.arima(ts_ng)
+print(ori_autofit)
+```
+
+> Answer: The order of the seasonal ARIMA model is p = 2, d = 0, q = 2, P = 0, D = 1, Q = 1. The orders of the non-seasonal component do not match what I specified in Q7, but the orders of the seasonal component do match.
