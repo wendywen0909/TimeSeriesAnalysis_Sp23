@@ -189,6 +189,10 @@ The function takes a few arguments, here are the important ones:
 
 
 ```{r}
+# Know nothing about the variances
+SS_seas <- StructTS(ts_price,
+                    type="BSM",fixed=c(NA,NA,NA,NA))
+
 SS_seas <- StructTS(ts_price,
                     type="BSM",fixed=c(0,0.001,0.3,NA))   #this function has convergence issues
 checkresiduals(SS_seas)
